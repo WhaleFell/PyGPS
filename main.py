@@ -57,11 +57,12 @@ API_ROUTES = {
 
 ######### Helper Functions ############
 
+raw_print = print
 
-def print(*args, **kwargs):
+def print(msg, *args, **kwargs):
     """overwrite print function in order to optimize"""
     if DEBUG:
-        print(*args, **kwargs)
+        raw_print(msg, *args, **kwargs)
 
 
 def list_devices():
