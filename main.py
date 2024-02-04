@@ -36,6 +36,7 @@ TRIGGER_STOP_SPEED: float = float(os.getenv("TRIGGER_STOP_SPEED", 0.5))  # 0.5 k
 NUM_PER_UPLOAD: int = int(
     os.getenv("NUM_PER_UPLOAD", 100)
 )  # number of GPS data per upload
+DEBUG: bool = bool(os.getenv("DEBUG", False))
 ################# Config End ##############
 
 if not GPSFILEDIR.exists():
@@ -193,7 +194,10 @@ async def get_gps_data() -> dict:
             data["speed"] = safe_getattr(msg, "spd_over_grnd_kmph")
 
         else:
-            print("positioning...", end="\r")
+            # print("positioning...", end="\r")
+            pass
+
+        await asyncio.sleep(0.1)
 
     print(f"success get gps data: {data}")
     return data
