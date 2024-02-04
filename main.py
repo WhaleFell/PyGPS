@@ -30,8 +30,8 @@ BAUDRATE: int = int(os.getenv("BAUDRATE", 115200))
 API_URL: str = os.getenv("API_URL", "http://localhost:8000")  # without last "/"
 ROOTPATH: Path = Path(__file__).resolve().parent
 GPSFILEDIR: Path = Path(ROOTPATH, "data")
-TRIGGER_STOP_TIME: int = 20  # 300 seconds
-TRIGGER_STOP_SPEED: float = 0.5  # 0.5 km/h
+TRIGGER_STOP_TIME: int = int(os.getenv("TRIGGER_STOP_TIME", 20))  # 300 seconds
+TRIGGER_STOP_SPEED: float = float(os.getenv("TRIGGER_STOP_SPEED", 0.5))  # 0.5 km/h
 ################# Config End ##############
 
 if not GPSFILEDIR.exists():
