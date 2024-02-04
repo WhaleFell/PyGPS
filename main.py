@@ -256,6 +256,9 @@ async def read_gps_datas(filepath: Path) -> List[dict]:
     }
     """
     lst = []
+    if not filepath.exists():
+        return lst
+
     async with aiofiles.open(filepath.as_posix(), "r", encoding="utf8") as f:
         async for row in f:
             data_lst = row.strip().split(",")
@@ -316,7 +319,9 @@ async def handle_gps_loop():
 
 async def main():
     history_gps_datas = await read_gps_datas(gen_gps_filepath())
-    asyncio.ensure_future(upload_store_gps_data(history_gps_datas))
+    if history_gps_datas:
+        asyncio.ensure_future(upload_store_gps_data(history_gps_datas))
+
     await init()
     tasks = [get_gps_loop(), handle_gps_loop()]
     await asyncio.gather(*tasks)
