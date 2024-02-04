@@ -1,0 +1,15 @@
+[Unit]
+Description=Python GPS Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/root/wkdir/PyGPS/venv/bin/python -u /root/wkdir/PyGPS/main.py
+Restart=always
+RestartSec=2
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

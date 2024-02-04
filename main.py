@@ -313,7 +313,7 @@ async def handle_gps_loop():
         # await upload_gps_data(data)
         # await save_gps_data(data)
         # use asyncio.ensure_future to avoid blocking. Tasks will run together.
-        await asyncio.gather(*[upload_gps_data(data), save_gps_data(data)])
+        await asyncio.gather(*[upload_gps_data(data), save_gps_data(data)])  # type: ignore
         upload_queue.task_done()
 
 
@@ -328,6 +328,9 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # in python 3.9 if use asyncio.run(main()) will raise Queue loop attached to a different loop error
+    # asyncio.run(main())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
     if isinstance(ser, serial.Serial):
         ser.close()
