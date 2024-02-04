@@ -58,6 +58,12 @@ API_ROUTES = {
 ######### Helper Functions ############
 
 
+def print(*args, **kwargs):
+    """overwrite print function in order to optimize"""
+    if DEBUG:
+        print(*args, **kwargs)
+
+
 def list_devices():
     ports = serial.tools.list_ports.comports()
     for port, desc, hwid in sorted(ports):
