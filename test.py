@@ -17,15 +17,13 @@ KML_FORMAT = """<?xml version="1.0" encoding="UTF-8"?>
 	xmlns:gx="http://www.google.com/kml/ext/2.2" 
 	>
 	<Document>
-		<name> GPS Track </name>
+		<name>GPS Track</name>
 		<Placemark>
 			<name>[name]</name>
 			<Style>
 				<LineStyle><color>7fff0000</color><width>5</width></LineStyle>
 			</Style>
 				<gx:Track>
-					<gx:coord>113.03961419 23.01465949 1</gx:coord>
-					<when>2023-07-19T11:52:10Z</when>
                     [datas]
                 </gx:Track>
 		</Placemark>
@@ -36,7 +34,13 @@ KML_FORMAT = """<?xml version="1.0" encoding="UTF-8"?>
 
 # make kml string use kml format
 def make_kml(data: str, name: str = "default") -> str:
-    return KML_FORMAT.replace("[datas]", data).replace("[name]", name)
+    return (
+        KML_FORMAT.replace("[datas]", data)
+        .replace("[name]", name)
+        .replace("\n", "")
+        .replace("\t", "")
+        .replace("  ", "")
+    )
 
 
 # second timestamp to utc+8 datetime
