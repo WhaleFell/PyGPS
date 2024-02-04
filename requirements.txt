@@ -1,0 +1,5 @@
+pyserial
+pynmea2
+python-dotenv
+httpx
+aiofiles
