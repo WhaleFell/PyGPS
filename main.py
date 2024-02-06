@@ -31,6 +31,7 @@ BAUDRATE: int = int(os.getenv("BAUDRATE", 115200))
 API_URL: str = os.getenv("API_URL", "http://localhost:8000")  # without last "/"
 ROOTPATH: Path = Path(__file__).resolve().parent
 GPSFILEDIR: Path = Path(ROOTPATH, "data")
+DISABLE_IGNORE_STOP: bool = bool(os.getenv("DISABLE_IGNORE_STOP", False))
 TRIGGER_STOP_TIME: int = int(os.getenv("TRIGGER_STOP_TIME", 20))  # 300 seconds
 TRIGGER_STOP_SPEED: float = float(os.getenv("TRIGGER_STOP_SPEED", 0.5))  # 0.5 km/h
 NUM_PER_UPLOAD: int = int(
@@ -336,7 +337,7 @@ async def get_gps_loop():
             stopping = False
             ignore = False
 
-        if not ignore:
+        if not ignore or DISABLE_IGNORE_STOP:
             await upload_queue.put(data)
 
         await asyncio.sleep(1)
