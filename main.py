@@ -59,6 +59,31 @@ API_ROUTES = {
 
 raw_print = print
 
+
+# https://stackoverflow.com/questions/29557353/how-can-i-improve-pyserial-read-speed/56240817#56240817
+class ReadLine:
+    def __init__(self, s):
+        self.buf = bytearray()
+        self.s = s
+
+    def readline(self):
+        i = self.buf.find(b"\n")
+        if i >= 0:
+            r = self.buf[: i + 1]
+            self.buf = self.buf[i + 1 :]
+            return r
+        while True:
+            i = max(1, min(2048, self.s.in_waiting))
+            data = self.s.read(i)
+            i = data.find(b"\n")
+            if i >= 0:
+                r = self.buf + data[: i + 1]
+                self.buf[0:] = data[i + 1 :]
+                return r
+            else:
+                self.buf.extend(data)
+
+
 def print(msg, *args, **kwargs):
     """overwrite print function in order to optimize"""
     if DEBUG:
@@ -137,6 +162,7 @@ async def init():
     while True:
         try:
             ser = serial.Serial(SERIAL, 115200, timeout=5)
+            ser = ReadLine(ser)
             return
         except Exception as e:
             print(f"init serial error: {e} retry in 2s...")
@@ -204,7 +230,7 @@ async def get_gps_data() -> dict:
             # print("positioning...", end="\r")
             pass
 
-        await asyncio.sleep(0.1)
+        # await asyncio.sleep(0.1)
 
     print(f"success get gps data: {data}")
     return data
