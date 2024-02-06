@@ -337,7 +337,7 @@ async def get_gps_loop():
             stopping = False
             ignore = False
 
-        if not ignore or DISABLE_IGNORE_STOP:
+        if (not ignore) or DISABLE_IGNORE_STOP:
             await upload_queue.put(data)
 
         await asyncio.sleep(1)
