@@ -361,15 +361,14 @@ async def get_gps_loop():
 
 
 async def handle_gps_loop():
-    datas = []
     while True:
         data = await upload_queue.get()
-        datas.append(data)
         # await upload_gps_data(data)
         # await save_gps_data(data)
         # use asyncio.ensure_future to avoid blocking. Tasks will run together.
         await asyncio.gather(*[upload_gps_data(data), save_gps_data(data)])  # type: ignore
         upload_queue.task_done()
+        print("remain data in queue:", upload_queue.qsize())
 
 
 async def main():
