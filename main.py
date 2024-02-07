@@ -21,6 +21,7 @@ from functools import wraps
 from pathlib import Path
 import aiofiles
 from typing import Union, List
+import time
 
 load_dotenv(override=True)
 
@@ -69,7 +70,7 @@ class ReadLine:
         self.buf = bytearray()
         self.s = s
 
-    def readline(self):
+    def readline(self) -> bytearray:
         i = self.buf.find(b"\n")
         if i >= 0:
             r = self.buf[: i + 1]
@@ -193,11 +194,16 @@ async def get_gps_data() -> dict:
         "GPSTimestamp": None,
     }
     while dict_is_none(data):
-        if ser_readline is None:
+        if ser_readline is None or ser is None:
             print("ser_readline is None, retry in 1s...")
             await asyncio.sleep(1)
             continue
         try:
+            # the cache is cleared every minute
+            if datetime.datetime.now().second == 0 and ser_readline.buf:
+                ser_readline.buf.clear()
+                ser.reset_input_buffer()
+                print("clear cache...")
             line = ser_readline.readline().decode("utf-8")  # type: ignore
             msg = pynmea2.parse(line)
         except pynmea2.ParseError as e:
