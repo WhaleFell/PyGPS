@@ -20,7 +20,8 @@ import datetime
 from functools import wraps
 from pathlib import Path
 import aiofiles
-from typing import Union, List, Never
+from typing import Union, List
+from typing_extensions import Never
 
 load_dotenv(override=True)
 
@@ -356,7 +357,7 @@ async def read_gps_data(filepath: Path) -> Union[None, list[dict]]:
     return lst
 
 
-async def get_gps_loop():
+async def get_gps_loop() -> Never:
     ignore = False
     stopping = False
     stop_timestamp = 0
@@ -387,7 +388,7 @@ async def get_gps_loop():
         await asyncio.sleep(1)
 
 
-async def handle_gps_loop():
+async def handle_gps_loop() -> Never:
     while True:
         queue_size = upload_queue.qsize()
         print("remain data in queue:", queue_size)
