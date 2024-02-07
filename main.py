@@ -20,8 +20,7 @@ import datetime
 from functools import wraps
 from pathlib import Path
 import aiofiles
-from typing import Union, List, AsyncIterator
-import traceback
+from typing import Union, List, Never
 
 load_dotenv(override=True)
 
@@ -35,9 +34,9 @@ GPSFILEDIR: Path = Path(ROOTPATH, "data")
 DISABLE_IGNORE_STOP: bool = bool(os.getenv("DISABLE_IGNORE_STOP", False))
 TRIGGER_STOP_TIME: int = int(os.getenv("TRIGGER_STOP_TIME", 20))  # 300 seconds
 TRIGGER_STOP_SPEED: float = float(os.getenv("TRIGGER_STOP_SPEED", 0.5))  # 0.5 km/h
-NUM_PER_UPLOAD: int = int(
-    os.getenv("NUM_PER_UPLOAD", 100)
-)  # number of GPS data per upload
+# number of GPS data per upload
+NUM_PER_UPLOAD: int = int(os.getenv("NUM_PER_UPLOAD", 100))
+CHECK_NETWORK_INTERVAL: int = int(os.getenv("CHECK_NETWORK_INTERVAL", 5))  # 10 seconds
 DEBUG: bool = bool(os.getenv("DEBUG", False))
 ################# Config End ##############
 
@@ -47,6 +46,7 @@ ser = None
 ser_readline = None
 error_count = 0
 max_error_count = 5
+is_network_available = None
 upload_queue = asyncio.Queue()
 Aclient = httpx.AsyncClient(
     verify=False,
@@ -56,6 +56,7 @@ Aclient = httpx.AsyncClient(
 API_ROUTES = {
     "gps": "/gps/upload/",
     "mutil_gps": "/gps/upload/multi/",
+    "ping": "/ping/",
 }
 
 ######### Helper Functions ############
@@ -142,10 +143,12 @@ def aretry(times: int = 3, interval: float = 1):
             for i in range(times):
                 try:
                     return await func(*args, **kwargs)
+                except httpx.HTTPError as e:
+                    print(f"HTTP connect error: {e} retry {i+1} times.")
                 except Exception as e:
-                    print(f"retry {i+1} times: {e}")
-                    traceback.print_exc()
-                    await asyncio.sleep(interval)
+                    print(f"retry {i+1} times, error: {e}")
+
+                await asyncio.sleep(interval)
 
         return wrapper
 
@@ -156,6 +159,22 @@ def aretry(times: int = 3, interval: float = 1):
 def gen_gps_filepath() -> Path:
     filename = datetime.datetime.now().strftime("gps_%Y_%m_%d.csv")
     return Path(GPSFILEDIR, filename)
+
+
+# check network task: check if the network is available
+async def check_network_task() -> Never:
+    global is_network_available
+    while True:
+        try:
+            response = await Aclient.get(f"{API_URL}{API_ROUTES['ping']}")
+            await response.aclose()
+            is_network_available = True
+            print("network is available")
+        except Exception as e:
+            print(f"check network error: {e}")
+            is_network_available = False
+
+        await asyncio.sleep(CHECK_NETWORK_INTERVAL)
 
 
 ######### Helper Functions End ############
@@ -253,6 +272,11 @@ async def get_gps_data() -> dict:
 @aretry(times=3, interval=0.5)
 async def upload_gps_data(data: Union[dict, List[dict]]):
     """upload formatted gps data to HTTP server"""
+    global is_network_available, Aclient
+    if not is_network_available and is_network_available is not None:
+        print("network is not available, upload stop...")
+        return
+
     if isinstance(data, dict):
         response = await Aclient.post(f"{API_URL}{API_ROUTES['gps']}", json=data)
         print(f"upload success: {response.status_code} {response.text}")
@@ -380,20 +404,14 @@ async def handle_gps_loop():
             continue
 
         data = await upload_queue.get()
-        # use asyncio.ensure_future to avoid blocking. Tasks will run together.
-        await asyncio.gather(*[upload_gps_data(data), save_gps_data(data)])  # type: ignore
+        # await asyncio.gather(*[upload_gps_data(data), save_gps_data(data)])
+        await save_gps_data(data)
+        asyncio.ensure_future(upload_gps_data(data))
         upload_queue.task_done()
-
-        # get all data in queue and upload
-        # lst = []
-        # while not upload_queue.empty():
-        #     lst.append(upload_queue.get_nowait())
-        #     await save_gps_data(data)
-        # await asyncio.gather(*[upload_gps_data(lst)])
-        # lst.clear()
 
 
 async def main():
+    asyncio.ensure_future(check_network_task())
     asyncio.ensure_future(upload_store_gps_data())
 
     await init()
