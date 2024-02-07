@@ -43,6 +43,7 @@ DEBUG: bool = bool(os.getenv("DEBUG", False))
 if not GPSFILEDIR.exists():
     GPSFILEDIR.mkdir()
 ser = None
+ser_readline = None
 error_count = 0
 max_error_count = 5
 upload_queue = asyncio.Queue()
@@ -159,7 +160,7 @@ def gen_gps_filepath() -> Path:
 
 
 async def init():
-    global ser
+    global ser, ser_readline
     print("initialization...")
     while True:
         try:
@@ -192,6 +193,10 @@ async def get_gps_data() -> dict:
         "GPSTimestamp": None,
     }
     while dict_is_none(data):
+        if ser_readline is None:
+            print("ser_readline is None, retry in 1s...")
+            await asyncio.sleep(1)
+            continue
         try:
             line = ser_readline.readline().decode("utf-8")  # type: ignore
             msg = pynmea2.parse(line)

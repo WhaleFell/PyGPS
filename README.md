@@ -29,6 +29,14 @@ pip install --upgrade -r requirements.txt --index-url=https://pypi.org/simple
 pip install --upgrade -r requirements-test.txt --index-url=https://pypi.org/simple
 ```
 
-## Library
+## Systemctl
 
-1. asynchronous Python Serial [pyserial-asyncio](https://pyserial-asyncio.readthedocs.io/en/latest/shortintro.html)
+```bash
+# show log
+journalctl -f -u gps 
+
+# restart service
+sudo systemctl restart gps
+```
+
+## Library
