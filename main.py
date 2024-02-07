@@ -50,7 +50,7 @@ max_error_count = 5
 upload_queue = asyncio.Queue()
 Aclient = httpx.AsyncClient(
     verify=False,
-    timeout=5,
+    timeout=8,
 )
 # prefix with / and suffix with /, like /gps/upload/
 API_ROUTES = {
