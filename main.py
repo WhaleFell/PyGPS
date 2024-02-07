@@ -20,7 +20,7 @@ import datetime
 from functools import wraps
 from pathlib import Path
 import aiofiles
-from typing import Union, List
+from typing import Union, List, AsyncIterator
 import traceback
 
 load_dotenv(override=True)
@@ -263,19 +263,22 @@ async def upload_gps_data(data: Union[dict, List[dict]]):
         await response.aclose()
 
 
-async def upload_store_gps_data(datas: List[dict]):
+async def upload_store_gps_data(datas: AsyncIterator[Union[dict, None]]):
     """upload stored gps data to HTTP server"""
     lst = []
-    for data in datas:
+    async for data in datas:
+        if data is None:
+            continue
         # upload data when the number of data count > NUM_PER_UPLOAD
         lst.append(data)
         if len(lst) >= NUM_PER_UPLOAD:
             await upload_gps_data(lst)
-            lst = []
+            lst.clear()
 
     # upload remaining data
     if lst:
         await upload_gps_data(lst)
+        lst.clear()
 
     print("upload store gps success")
 
@@ -292,7 +295,7 @@ async def save_gps_data(data: dict):
         )
 
 
-async def read_gps_datas(filepath: Path) -> List[dict]:
+async def read_gps_data(filepath: Path) -> AsyncIterator[Union[dict, None]]:
     """read GPS data in csv file and than return datas
     CSV file format:
     timestamp,latitude,longitude,altitude,speed
@@ -306,28 +309,26 @@ async def read_gps_datas(filepath: Path) -> List[dict]:
         "speed": speed
     }
     """
-    lst = []
     if not filepath.exists():
-        return lst
+        yield None
+        return
 
     async with aiofiles.open(filepath.as_posix(), "r", encoding="utf8") as f:
-        datas = await f.readlines()
-        for data in datas:
-            data = data.strip()
+        while True:
+            data = await f.readline()
             if not data:
-                continue
+                yield None
+                return
+            data = data.strip()
             timestamp, latitude, longitude, altitude, speed = data.split(",")
-            lst.append(
-                {
-                    "GPSTimestamp": int(timestamp),
-                    "latitude": float(latitude),
-                    "longitude": float(longitude),
-                    "altitude": float(altitude),
-                    "speed": float(speed),
-                }
-            )
-
-    return lst
+            data = {
+                "GPSTimestamp": int(timestamp),
+                "latitude": float(latitude),
+                "longitude": float(longitude),
+                "altitude": float(altitude),
+                "speed": float(speed),
+            }
+            yield data
 
 
 async def get_gps_loop():
@@ -392,12 +393,8 @@ async def handle_gps_loop():
 
 
 async def main():
-    history_gps_datas = await read_gps_datas(gen_gps_filepath())
-    loop = asyncio.get_event_loop()
-    if history_gps_datas:
-        # asyncio.ensure_future(upload_store_gps_data(history_gps_datas))
-        upload_task = loop.create_task(upload_store_gps_data(history_gps_datas))
-        upload_task.add_done_callback(lambda fut: history_gps_datas.clear())
+    history_gps_datas_iterator = read_gps_data(gen_gps_filepath())
+    asyncio.ensure_future(upload_store_gps_data(history_gps_datas_iterator))
 
     await init()
     tasks = [get_gps_loop(), handle_gps_loop()]
