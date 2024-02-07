@@ -299,7 +299,7 @@ async def read_gps_datas(filepath: Path) -> List[dict]:
 
     return: dict
     {
-        "timestamp": timestamp,
+        "GPSTimestamp": timestamp,
         "latitude": latitude,
         "longitude": longitude,
         "altitude": altitude,
@@ -319,7 +319,7 @@ async def read_gps_datas(filepath: Path) -> List[dict]:
             timestamp, latitude, longitude, altitude, speed = data.split(",")
             lst.append(
                 {
-                    "timestamp": int(timestamp),
+                    "GPSTimestamp": int(timestamp),
                     "latitude": float(latitude),
                     "longitude": float(longitude),
                     "altitude": float(altitude),
