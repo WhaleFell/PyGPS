@@ -21,7 +21,7 @@ from functools import wraps
 from pathlib import Path
 import aiofiles
 from typing import Union, List
-import time
+import traceback
 
 load_dotenv(override=True)
 
@@ -144,6 +144,7 @@ def aretry(times: int = 3, interval: float = 1):
                     return await func(*args, **kwargs)
                 except Exception as e:
                     print(f"retry {i+1} times: {e}")
+                    traceback.print_exc()
                     await asyncio.sleep(interval)
 
         return wrapper
@@ -165,12 +166,12 @@ async def init():
     print("initialization...")
     while True:
         try:
-            ser = serial.Serial(SERIAL, 115200, timeout=5)
+            ser = serial.Serial(SERIAL, 115200, timeout=1)
             ser_readline = ReadLine(ser)
             return
         except Exception as e:
-            print(f"init serial error: {e} retry in 2s...")
-            await asyncio.sleep(2)
+            print(f"init serial error: {e} retry in 5s...")
+            await asyncio.sleep(5)
 
 
 async def get_gps_data() -> dict:
