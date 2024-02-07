@@ -62,8 +62,9 @@ raw_print = print
 
 
 # https://stackoverflow.com/questions/29557353/how-can-i-improve-pyserial-read-speed/56240817#56240817
+# https://github.com/pyserial/pyserial/issues/216
 class ReadLine:
-    def __init__(self, s):
+    def __init__(self, s: serial.Serial) -> None:
         self.buf = bytearray()
         self.s = s
 
@@ -163,7 +164,7 @@ async def init():
     while True:
         try:
             ser = serial.Serial(SERIAL, 115200, timeout=5)
-            ser = ReadLine(ser)
+            ser_readline = ReadLine(ser)
             return
         except Exception as e:
             print(f"init serial error: {e} retry in 2s...")
@@ -192,7 +193,7 @@ async def get_gps_data() -> dict:
     }
     while dict_is_none(data):
         try:
-            line = ser.readline().decode("utf-8")  # type: ignore
+            line = ser_readline.readline().decode("utf-8")  # type: ignore
             msg = pynmea2.parse(line)
         except pynmea2.ParseError as e:
             print(f"nmea parse error: {e}")
@@ -298,16 +299,21 @@ async def read_gps_datas(filepath: Path) -> List[dict]:
         return lst
 
     async with aiofiles.open(filepath.as_posix(), "r", encoding="utf8") as f:
-        async for row in f:
-            data_lst = row.strip().split(",")
-            data_dict = {
-                "latitude": data_lst[1],
-                "longitude": data_lst[2],
-                "altitude": data_lst[3],
-                "speed": data_lst[4],
-                "GPSTimestamp": data_lst[0],
-            }
-            lst.append(data_dict)
+        datas = await f.readlines()
+        for data in datas:
+            data = data.strip()
+            if not data:
+                continue
+            timestamp, latitude, longitude, altitude, speed = data.split(",")
+            lst.append(
+                {
+                    "timestamp": int(timestamp),
+                    "latitude": float(latitude),
+                    "longitude": float(longitude),
+                    "altitude": float(altitude),
+                    "speed": float(speed),
+                }
+            )
 
     return lst
 
