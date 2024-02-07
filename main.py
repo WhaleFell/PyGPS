@@ -393,8 +393,11 @@ async def handle_gps_loop():
 
 async def main():
     history_gps_datas = await read_gps_datas(gen_gps_filepath())
+    loop = asyncio.get_event_loop()
     if history_gps_datas:
-        asyncio.ensure_future(upload_store_gps_data(history_gps_datas))
+        # asyncio.ensure_future(upload_store_gps_data(history_gps_datas))
+        upload_task = loop.create_task(upload_store_gps_data(history_gps_datas))
+        upload_task.add_done_callback(lambda fut: history_gps_datas.clear())
 
     await init()
     tasks = [get_gps_loop(), handle_gps_loop()]
